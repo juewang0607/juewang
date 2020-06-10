@@ -34,36 +34,33 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         return x
 
+
 def train(args, model, device, train_loader, optimizer, epoch):
     # number of epochs to train the model
     n_epochs = 30  # suggest training between 20-50 epochs
 
     model.train()  # prep model for training
-
-    for epoch in range(n_epochs):
+    for batch_idx, (data, target) in enumerate(train_loader):
         # monitor training loss
         train_loss = 0.0
-        for data, target in train_loader:
-            # clear the gradients of all optimized variables
-            optimizer.zero_grad()
-            # forward pass: compute predicted outputs by passing inputs to the model
-            output = model(data)
-            # calculate the loss
-            loss = F.nll_loss(output, target)
-            # backward pass: compute gradient of the loss with respect to model parameters
-            loss.backward()
-            # perform a single optimization step (parameter update)
-            optimizer.step()
-            # update running training loss
-            train_loss += loss.item() * data.size(0)
+        # clear the gradients of all optimized variables
+        optimizer.zero_grad()
+        # forward pass: compute predicted outputs by passing inputs to the model
+        output = model(data)
+        # calculate the loss
+        loss = F.nll_loss(output, target)
+        # backward pass: compute gradient of the loss with respect to model parameters
+        loss.backward()
+        # perform a single optimization step (parameter update)
+        optimizer.step()
+        # update running training loss
+        train_loss += loss.item() * data.size(0)
         # print training statistics
         # calculate average loss over an epoch
-            if epoch % args.log_interval == 0:
-
-                print('Epoch: {} \tTraining Loss: {:.6f}'.format(
-                    epoch + 1,
-                    train_loss / len(train_loader.dataset)
-                ))
+        if batch_idx % args.log_interval == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, batch_idx * len(data), len(train_loader.dataset),
+                       100. * batch_idx / len(train_loader), train_loss / len(train_loader.dataset)))
 
 
 def test(args, model, device, test_loader):
