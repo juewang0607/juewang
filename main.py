@@ -38,8 +38,8 @@ class Net(nn.Module):
 def train(args, model, device, train_loader, optimizer, epoch):
     # number of epochs to train the model
     n_epochs = 30  # suggest training between 20-50 epochs
-
     model.train()  # prep model for training
+    criterion = nn.CrossEntropyLoss()
     for batch_idx, (data, target) in enumerate(train_loader):
         # monitor training loss
         train_loss = 0.0
@@ -48,7 +48,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         # forward pass: compute predicted outputs by passing inputs to the model
         output = model(data)
         # calculate the loss
-        loss = F.nll_loss(output, target)
+        loss = criterion(output, target)
         # backward pass: compute gradient of the loss with respect to model parameters
         loss.backward()
         # perform a single optimization step (parameter update)
@@ -56,11 +56,10 @@ def train(args, model, device, train_loader, optimizer, epoch):
         # update running training loss
         train_loss += loss.item() * data.size(0)
         # print training statistics
-        # calculate average loss over an epoch
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                       100. * batch_idx / len(train_loader), train_loss / len(train_loader.dataset)))
+                       100. * batch_idx / len(train_loader), train_loss/len(train_loader)))
 
 
 def test(args, model, device, test_loader):
@@ -204,4 +203,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
