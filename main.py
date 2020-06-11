@@ -27,17 +27,18 @@ class Net(nn.Module):
         # dropout prevents overfitting of data
         self.dropout = nn.Dropout(0.2)
 
+    # a four to five MLP with around 100 could be a good start point, for model architecture you may search around the internet
     def forward(self, x):
         # flatten image input
         x = x.view(-1, 28 * 28)
         # add hidden layer, with relu activation function
-        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc1(x))  # just a remind that we do not need to add relu after final layer
         return F.log_softmax(x, dim=1)
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
     # number of epochs to train the model
-    n_epochs = 30  # suggest training between 20-50 epochs
+    #n_epochs = 30  # suggest training between 20-50 epochs
     model.train()  # prep model for training
     criterion = nn.CrossEntropyLoss()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -99,15 +100,16 @@ def generate(args, model, device, test_loader, file_name, epoch):
 
 def main():
     # Training settings
+    # clean up useless parameter here
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=256, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=10000, metavar='N',
+    parser.add_argument('--test-batch-size', type=int, default=500, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=1000, metavar='N',
+    parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
-                        help='learning rate (default: 0.1)')
+    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',  # adam's default learning rate is 0.001, 0.1 is too large
+                        help='learning rate (default: 0.001)')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                         help='SGD momentum (default: 0.9)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -128,8 +130,8 @@ def main():
                         help='If load-model has a name, use pretrained model')
     parser.add_argument('--optimizer', type=str, default='adam', metavar='N',
                         help='which optimizer to use')
-    parser.add_argument('--split', type=int, default=3, metavar='N',
-                        help='number of splits for training data')
+    #parser.add_argument('--split', type=int, default=3, metavar='N',
+    #                    help='number of splits for training data')
 
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -149,7 +151,7 @@ def main():
     test_data = datasets.MNIST(root='data', train=False,
                                download=True, transform=transform)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
-                                               num_workers=num_workers)
+                                               num_workers=num_workers) # check whether data is shuffled here
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size,
                                               num_workers=num_workers)
 
@@ -163,8 +165,8 @@ def main():
         model.load_state_dict(torch.load(args.test_model))
         model.eval()
         correct_rate_train = []
-        for samll_epoch in range(args.split):
-            correct_rate_train.append(test(args, model, device, train_loader))
+        #for samll_epoch in range(args.split):
+        correct_rate_train.append(test(args, model, device, train_loader))
         print("Accurate rate on training set: " + str(np.array(correct_rate_train).mean()))
         return
 
@@ -175,8 +177,8 @@ def main():
     generate(args, model, device, test_loader, timeStr+"model", 0)
 
     for epoch in range(1, args.epochs + 1):
-        for samll_epoch in range(args.split):
-            train(args, model, device, train_loader, optimizer, epoch)
+        #for samll_epoch in range(args.split):
+        train(args, model, device, train_loader, optimizer, epoch)
             # train_loader = None
         correct_rate = test(args, model, device, test_loader)
         if args.save_model:
