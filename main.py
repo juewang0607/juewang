@@ -32,7 +32,7 @@ class Net(nn.Module):
         x = x.view(-1, 28 * 28)
         # add hidden layer, with relu activation function
         x = F.relu(self.fc1(x))
-        return x
+        return F.log_softmax(x, dim=1)
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -59,42 +59,26 @@ def train(args, model, device, train_loader, optimizer, epoch):
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                       100. * batch_idx / len(train_loader), train_loss/len(train_loader)))
+                100. * batch_idx / len(train_loader), train_loss/len(train_loader)))
 
 
 def test(args, model, device, test_loader):
-    test_loss = 0.0
-    class_correct = list(0. for i in range(10))
-    class_total = list(0. for i in range(10))
-    model.eval()  # prep model for *evaluation*
-    for data, target in test_loader:
-        # data = data.view(-1, 40)
-        output = model(data)
-        # sum up batch loss
-        loss = F.nll_loss(output, target)
-        test_loss += loss.item()*data.size(0)
-        pred = torch.max(output, 1)  # convert output probabilities to predicted class
-        correct = np.squeeze(pred.eq(target.data.view_as(pred)))  # compare predictions to true label
-        # calculate the test accuracy for each object class
-        for i in range(batch_size):
-            label = target.data[i]
-            class_correct[label] += correct[i].item()
-            class_total[label] += 1
+    model.eval()
+    test_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for data, target in test_loader:
+            #data = data.view(-1, 40)
+            output = model(data)
+            test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
+            pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+            correct += pred.eq(target.view_as(pred)).sum().item()
+    test_loss /= len(test_loader.dataset)
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
 
-# calculate and print the average test loss
-    test_loss = test_loss/len(test_loader.dataset)
-    print('Test Loss: {:.6f}\n'.format(test_loss))
-    for i in range(10):
-        if class_total[i] > 0:
-            print('Test Accuracy of %5s: %2d%% (%2d/%2d)' % (
-                str(i), 100 * class_correct[i] / class_total[i],
-                np.sum(class_correct[i]), np.sum(class_total[i])))
-        else:
-            print('Test Accuracy of %5s: N/A (no training examples)' % (classes[i]))
-    print('\nTest Accuracy (Overall): %2d%% (%2d/%2d)' % (
-        100. * np.sum(class_correct) / np.sum(class_total),
-        np.sum(class_correct), np.sum(class_total)))
-    # return 100. * np.sum(class_correct) / np.sum(class_total)
+    # return 100. * correct / len(test_loader.dataset)
 
 
 def generate(args, model, device, test_loader, file_name, epoch):
@@ -193,9 +177,8 @@ def main():
     for epoch in range(1, args.epochs + 1):
         for samll_epoch in range(args.split):
             train(args, model, device, train_loader, optimizer, epoch)
-            train_loader = None
+            # train_loader = None
         correct_rate = test(args, model, device, test_loader)
-
         if args.save_model:
             torch.save(model.state_dict(), timeStr+"model/"+str(epoch)+":"+str(correct_rate)+".pt")
             generate(args, model, device, test_loader, timeStr + "model", epoch)
@@ -203,5 +186,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
