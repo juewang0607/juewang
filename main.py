@@ -31,8 +31,8 @@ class Net(nn.Module):
     def forward(self, x):
         # flatten image input
         x = x.view(-1, 28 * 28)
-        # add hidden layer, with relu activation function
-        x = F.relu(self.fc1(x))  # just a remind that we do not need to add relu after final layer
+        # add hidden layer, with relu activation functio
+        x = self.fc1(x)# just a remind that we do not need to add relu after final layer
         return F.log_softmax(x, dim=1)
 
 
@@ -116,22 +116,16 @@ def main():
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--save-model', action='store_true', default=True,
-                        help='For Saving ther current Model')
-    parser.add_argument('--sliding-size', type=int, default=3, metavar='N',
-                        help='sliding window size (one hand) for pre-processing data')
-    parser.add_argument('--normalization', type=str, default='all', metavar='N',
-                        help='how to do data normalization')
+    parser.add_argument('--optimizer', type=str, default='adam', metavar='N',
+                        help='which optimizer to use')
     parser.add_argument('--test-model', type=str, default='', metavar='N',
                         help='If test-model has a name, do not do training, just testing on dev and train set')
     parser.add_argument('--load-model', type=str, default='', metavar='N',
                         help='If load-model has a name, use pretrained model')
-    parser.add_argument('--optimizer', type=str, default='adam', metavar='N',
-                        help='which optimizer to use')
-    #parser.add_argument('--split', type=int, default=3, metavar='N',
-    #                    help='number of splits for training data')
+    parser.add_argument('--log-interval', type=int, default=100, metavar='N',
+                        help='how many batches to wait before logging training status')
+    parser.add_argument('--save-model', action='store_true', default=True,
+                        help='For Saving ther current Model')
 
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -154,7 +148,6 @@ def main():
                                                num_workers=num_workers) # check whether data is shuffled here
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size,
                                               num_workers=num_workers)
-
 
     model = Net()
     if args.optimizer == "SGD":
@@ -188,3 +181,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
