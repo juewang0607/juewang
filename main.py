@@ -18,11 +18,17 @@ num_workers = 0
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 10)
+        self.fc1 = nn.Linear(28*28, 10)
+        self.bn1 = nn.BatchNorm1d(10)
+        self.act1 = nn.ReLU()
         # linear layer (n_hidden -> hidden_2)
-        self.fc2 = nn.Linear(512, 512)
+        self.fc2 = nn.Linear(10, 10)
+        self.bn2 = nn.BatchNorm1d(10)
+        self.act2 = nn.ReLU()
         # linear layer (n_hidden -> 10)
-        self.fc3 = nn.Linear(512, 10)
+        self.fc3 = nn.Linear(10, 10)
+        self.bn3 = nn.BatchNorm1d(10)
+        self.act3 = nn.ReLU()
         # dropout layer (p=0.2)
         # dropout prevents overfitting of data
         self.dropout = nn.Dropout(0.2)
@@ -32,7 +38,18 @@ class Net(nn.Module):
         # flatten image input
         x = x.view(-1, 28 * 28)
         # add hidden layer, with relu activation functio
-        x = self.fc1(x)# just a remind that we do not need to add relu after final layer
+        x = self.fc1(x)
+        x = self.bn1(x)
+        x = self.act1(x)
+        x = self.fc2(x)
+        x = self.bn2(x)
+        x = self.act2(x)
+        x = self.fc3(x)
+        x = self.bn3(x)
+        x = self.act3(x)
+
+        #  x = self.fc3(x)  # just a remind that we do not need to add relu after final layer
+
         return F.log_softmax(x, dim=1)
 
 
@@ -181,4 +198,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
