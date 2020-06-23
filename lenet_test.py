@@ -52,14 +52,6 @@ class LeNet(nn.Module):
         return x
 
 
-def num_flat_features(self, x):
-        size = x.size()[1:]  # all dimensions except the batch dimension
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
-
-
 
 def train(args, model, device, train_loader, optimizer, epoch):
     # number of epochs to train the model
