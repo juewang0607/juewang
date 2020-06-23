@@ -20,61 +20,45 @@ batch_size = 20  # the numbers of samples per batch to load
 num_workers = 0
 
 
-class Net(nn.Module):
-    def __init__(self, out_features):
-        super(Net, self).__init__()
-        #  The first layer of the LeNet (Convolution)
-        self.fc1 = nn.Linear(28*28, 5*5)
-        self.bn1 = nn.BatchNorm1d(5*5)
-        self.act1 = nn.Tanh()
-        # The second layer of the LeNet (Average Pooling)
-        self.fc2 = nn.Linear(14 * 14, 2 * 2)
-        self.bn2 = nn.BatchNorm1d(2*2)
-        self.act2 = nn.Tanh()
-        # The third layer of the LeNet (Convolution)
-        self.fc3 = nn.Linear(10 * 10, 5 * 5)
-        self.bn3 = nn.BatchNorm1d(5*5)
-        self.act3 = nn.Tanh()
-        # The fourth layer of the LeNet (Average Pooling)
-        self.fc4 = nn.Linear(5 * 5, 2 * 2)
-        self.bn4 = nn.BatchNorm1d(2 * 2)
-        self.act4 = nn.Tanh()
-        # The fifth layer of the LeNet (Convolution)
-        self.fc5 = nn.Linear(1 * 1, 5 * 5)
-        self.bn5 = nn.BatchNorm1d(5 * 5)
-        self.act5 = nn.Tanh()
-        # The sixth layer of the LeNet (FC)
-        self.fc6 = nn.Linear(84, out_features)
-        self.bn6 = nn.BatchNorm1d(out_features)
-        self.act6 = nn.Tanh()
-        # dropout layer (p=0.2)
-        # dropout prevents overfitting of data
-        self.dropout = nn.Dropout(0.2)
+class LeNet(nn.Module):
 
-    # a four to five MLP with around 100 could be a good start point, for model architecture you may search around the internet
+    def __init__(self):
+        super(LeNet, self).__init__()
+        # Convolution (In LeNet-5, 32x32 images are given as input. Hence padding of 2 is done below)
+        self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5, stride=1, padding=2, bias=True)
+        # Max-pooling
+        self.max_pool_1 = torch.nn.MaxPool2d(kernel_size=2)
+        # Convolution
+        self.conv2 = torch.nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5, stride=1, padding=0, bias=True)
+        # Max-pooling
+        self.max_pool_2 = torch.nn.MaxPool2d(kernel_size=2)
+
+        self.fc1 = torch.nn.Linear(16 * 5 * 5,
+                                   120)
+        self.fc2 = torch.nn.Linear(120, 84)
+        self.fc3 = torch.nn.Linear(84, 10)
+
     def forward(self, x):
-        # flatten image input
-        x = x.view(1, 32 * 32)
-        # add hidden layer, with relu activation functio
-        x = self.fc1(x)
-        x = self.bn1(x)
-        x = self.act1(x)
-        x = self.fc2(x)
-        x = self.bn2(x)
-        x = self.act2(x)
+        # convolve, then perform ReLU non-linearity
+        x = torch.nn.functional.relu(self.conv1(x))
+        x = self.max_pool_1(x)
+        x = torch.nn.functional.relu(self.conv2(x))
+        x = self.max_pool_2(x)
+        x = x.view(-1, 16 * 5 * 5)
+        x = torch.nn.functional.relu(self.fc1(x))
+        x = torch.nn.functional.relu(self.fc2(x))
         x = self.fc3(x)
-        x = self.bn3(x)
-        x = self.act3(x)
-        x = self.fc4(x)
-        x = self.bn4(x)
-        x = self.act4(x)
-        x = self.fc5(x)
-        x = self.bn5(x)
-        x = self.act5(x)
-        x = self.fc6(x)
-        x = self.bn6(x)
-        x = self.act6(x)
-        return F.log_softmax(x, dim=1)
+
+        return x
+
+
+def num_flat_features(self, x):
+        size = x.size()[1:]  # all dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
+
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -179,31 +163,19 @@ def main():
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
-    # Load dataset as train and test sets
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    transform = transforms.ToTensor()
 
-    # Set numeric type to float32 from uint8
-    x_train = x_train.astype('float32')
-    x_test = x_test.astype('float32')
+    train_data = datasets.MNIST(root='data', train=True,
+                                download=True, transform=transform)
+    test_data = datasets.MNIST(root='data', train=False,
+                               download=True, transform=transform)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
+                                               num_workers=num_workers)  # check whether data is shuffled here
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size,
+                                              num_workers=num_workers)
 
-    # Normalize value to [0, 1]
-    x_train /= 255
-    x_test /= 255
+    model = LeNet()
 
-    # Transform lables to one-hot encoding
-    y_train = np_utils.to_categorical(y_train, 10)
-    y_test = np_utils.to_categorical(y_test, 10)
-
-    # Reshape the dataset into 4D array
-    x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
-    x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
-
-
-    model = Net(84)
-
-    hist = model.fit(x=x_train, y=y_train, epochs=10, batch_size=128, validation_data=(x_test, y_test), verbose=1)
-    test_loader = model.evaluate(x_test, y_test)
-    train_loader = model.evaluate(x_train, y_train)
 
     if args.optimizer == "SGD":
         optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
@@ -213,7 +185,7 @@ def main():
         model.load_state_dict(torch.load(args.test_model))
         model.eval()
         correct_rate_train = []
-        #for samll_epoch in range(args.split):
+        # for samll_epoch in range(args.split):
         correct_rate_train.append(test(args, model, device, train_loader))
         print("Accurate rate on training set: " + str(np.array(correct_rate_train).mean()))
         return
@@ -222,15 +194,15 @@ def main():
     os.mkdir(timeStr + "model")
     if len(args.load_model) > 1:
         model.load_state_dict(torch.load(args.load_model))
-    generate(args, model, device, test_loader, timeStr+"model", 0)
+    generate(args, model, device, test_loader, timeStr + "model", 0)
 
     for epoch in range(1, args.epochs + 1):
-        #for samll_epoch in range(args.split):
+        # for samll_epoch in range(args.split):
         train(args, model, device, train_loader, optimizer, epoch)
-            # train_loader = None
+        # train_loader = None
         correct_rate = test(args, model, device, test_loader)
         if args.save_model:
-            torch.save(model.state_dict(), timeStr+"model/"+str(epoch)+":"+str(correct_rate)+".pt")
+            torch.save(model.state_dict(), timeStr + "model/" + str(epoch) + ":" + str(correct_rate) + ".pt")
             generate(args, model, device, test_loader, timeStr + "model", epoch)
 
 
