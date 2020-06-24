@@ -53,6 +53,7 @@ class LeNet(nn.Module):
 
 
 
+
 def train(args, model, device, train_loader, optimizer, epoch):
     # number of epochs to train the model
     #n_epochs = 30  # suggest training between 20-50 epochs
@@ -92,11 +93,8 @@ def test(args, model, device, test_loader):
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
 
-    # return 100. * correct / len(test_loader.dataset)
+    print('accuracy:', 100. * correct / len(test_loader.dataset))
 
 
 def generate(args, model, device, test_loader, file_name, epoch):
@@ -186,16 +184,16 @@ def main():
     os.mkdir(timeStr + "model")
     if len(args.load_model) > 1:
         model.load_state_dict(torch.load(args.load_model))
-    generate(args, model, device, test_loader, timeStr + "model", 0)
+    generate(args, model, device, train_loader, timeStr + "model", 0)
 
     for epoch in range(1, args.epochs + 1):
         # for samll_epoch in range(args.split):
         train(args, model, device, train_loader, optimizer, epoch)
         # train_loader = None
-        correct_rate = test(args, model, device, test_loader)
+        correct_rate = test(args, model, device, train_loader)
         if args.save_model:
             torch.save(model.state_dict(), timeStr + "model/" + str(epoch) + ":" + str(correct_rate) + ".pt")
-            generate(args, model, device, test_loader, timeStr + "model", epoch)
+            generate(args, model, device, train_loader, timeStr + "model", epoch)
 
 
 if __name__ == '__main__':
